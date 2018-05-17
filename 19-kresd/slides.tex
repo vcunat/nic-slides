@@ -1,0 +1,58 @@
+\input nicslix
+\englishenv
+
+\pageAspectRatio[16:9]
+
+
+\title{Knot Resolver} %TODO logo \image{paris.jpg}
+%\subtitle{Malý tutorial}
+\author{Vladimír Čunát}{vladimir.cunat@nic.cz}
+\date[2018-05-23]
+
+
+\slide[Contents]
+
+Knot resolver is non-authoritative caching validating DNS server.
+
+\bulletList
+\item introduction to knot resolver
+
+\item overview of properties and architecture
+
+\item filtering DNS
+
+\endBulletList
+
+
+\slide[Our core values]
+\bulletList
+\item minimalistic approach
+  % We try to defer code to libraries where possible.
+  % It's not _just_ about being lazy.
+
+\item good DNSSEC validation support
+
+\item flexibility, via modules and lua config
+
+\item simplicity by default
+
+\endBulletList
+
+
+\slide[Architecture]
+\bulletList
+\item no threads, just processes sharing cache (LMDB)
+
+\item lmdb
+	\par foobar
+\item gnutls
+\item knot-dns libraries
+\item luajit
+\item libuv
+
+\endBulletList
+
+
+\lastSlide[https://knot-resolver.cz]{Thanks! Questions?}
+
+\bye
