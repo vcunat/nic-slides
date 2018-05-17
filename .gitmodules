@@ -1,0 +1,3 @@
+[submodule "slix"]
+	path = slix
+	url = https://gitlab.labs.nic.cz/llhotka/slix.git
