@@ -1,5 +1,5 @@
 
-slides.pdf: slides.tex pruhy.1 pruhy.2
+slides.pdf: slides.tex pruhy.1 pruhy.2 ../slix/TeX/nicslix.tex ../slix/TeX/slix-common.tex
 	xetex $<
 
 pruhy.1 pruhy.2: ../slix/MetaPost/pruhy.mp

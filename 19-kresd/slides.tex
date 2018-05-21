@@ -1,56 +1,163 @@
+% vim:set foldmethod=expr foldexpr=getline(v:lnum)=~'^\\\\slide.*'?'>1'\:'=' :
+% the modeline ^^ apparently doesn't work for some reason
 \input nicslix
 \englishenv
 
 \pageAspectRatio[16:9]
 
-
-\title{Knot Resolver} %TODO logo \image{paris.jpg}
-%\subtitle{Malý tutorial}
-\author{Vladimír Čunát}{vladimir.cunat@nic.cz}
+%\title{Knot Resolver}
+\subtitle{\bigskip\pdfpic[1000]{logo-kresd.pdf}}
+\author{Vladimir Cunat}{vladimir.cunat@nic.cz}
+	% "Č" doesn't render in this font :-(
 \date[2018-05-23]
 
 
-\slide[Contents]
+\slide[Projects @ cz.nic]
+  % TODO: at beginning or the end?
+Czech ccTLD registry,
+but many other projects, e.g.:
+\bulletList
+\item FRED: registry SW, used by several ccTLDs
+\item Turris: self-updating secure hackable routers
+\item BIRD: routing daemon
+\item CSIRT.CZ: national security response team
+\item HaaS: honeypot as a service
+\item Knot DNS: authoritative-only server
+  % Finally our older sister project Knot-DNS,
+  % a very fast authoritative server.
+\endBulletList
 
-Knot resolver is non-authoritative caching validating DNS server.
+
+\slide[Contents]
+Knot resolver is caching validating DNS resolver.
 
 \bulletList
-\item introduction to knot resolver
+\item introduction and architecture
 
-\item overview of properties and architecture
+\item overview of features
 
-\item filtering DNS
+\item configuration, filtering DNS
 
 \endBulletList
 
 
-\slide[Our core values]
+\slide[Knot resolver core values]
+%TODO title?? + express it's about kresd (and not e.g. cz.nic)
 \bulletList
-\item minimalistic approach
+
+\item minimalistic approach -- libraries
   % We try to defer code to libraries where possible.
   % It's not _just_ about being lazy.
 
-\item good DNSSEC validation support
+\item simplicity by default
+  % You can just start it without any configuration or parameters.
+
+\item DNSSEC and privacy
+  % cz.nic believes in DNSSEC, so we try to make it just work
+  % as easily as possible.
 
 \item flexibility, via modules and lua config
-
-\item simplicity by default
-
+  % Flexibility -- not by providing a thousand configuration options,
+  % but rather providing places where you can plug-in lua scripts
+  % -- our modules or your own code.
 \endBulletList
 
 
 \slide[Architecture]
-\bulletList
-\item no threads, just processes sharing cache (LMDB)
+No threads, just processes sharing cache.
 
-\item lmdb
-	\par foobar
-\item gnutls
-\item knot-dns libraries
-\item luajit
-\item libuv
+\bulletList
+\item LMDB -- cache, persistent and shareable
+\item Knot-DNS libraries -- DNS wire-format, zone files, etc.
+\item GnuTLS -- TLS and other crypto
+\item libuv -- network IO, timers, other asynchronous stuff
+\item LuaJIT -- configuration, scripting (e.g. modules)
+\endBulletList
+
+
+\slide[Features: DNSSEC algorithms]
+\image[800]{rootcanary.png}
+%\URL{https://rootcanary.org/test.html}
+  % On the left there are three algorithms that are now considered insecure.
+  % We're basically only limited by GnuTLS:
+  %  - GOST has a merge request waiting,
+  %  - ed448 doesn't
+
+\slide[Features: privacy (1)]
+\bulletList
+
+\item query name minimization, by default (rfc7816)
+  % For example, the root servers will only see the top-level name (e.g. "com")
+  % and not the whole query.
+  % Mention empty non-terminal problems?
+
+\item DNS over TLS (rfc7858)
+	\dashList
+	\item as client: forwarding, trust via key pin or cert
+	  % Kresd can forward over TLS - the connection is shared by all requests;
+	  % queries and answers can flow out of order.
+
+	\item as server: uses ephemeral cert, by default;
+		with padding (rfc7830)
+		  % ATM we don't pad when forwarding over TLS.
+	\endDashList
 
 \endBulletList
+\slide[Features: privacy (2)]
+\bulletList
+
+\item aggressive caching (rfc8198)
+	\dashList
+	\item NSEC zones now, NSEC3 within weeks
+	\par (useless in opt-out zones)
+	\item also helps against random subdomain attacks
+	\endDashList
+
+\item prefill module
+	\dashList
+	\item whole root zone kept fresh in cache
+	\par (alternative to rfc7706: root on loopback)
+	\endDashList
+
+%\item rfc6761: % special-use zones, doesn't seem significant enough
+\endBulletList
+
+
+\slide[Features: others]
+Provided by modules and off by default:
+\bulletList
+\item collecting and sending statistics (e.g. to InfluxDB)
+\item prefetching records, with prediction
+\item serving expired records, if upstream doesn't respond repeatedly
+\item DNS64 (rfc6147)
+\item query policies, views, ACLs (details later)
+\item ...
+\endBulletList
+
+
+\slide[Configuration]
+\bulletList
+\item flexibility: it's just lua (LuaJIT)
+\item Knot resolver -specific syntax sugar and bindings
+\item control via a unix socket -- lua read-eval-print loop
+\item {\tti example 1}
+\endBulletList
+
+
+\slide
+DNSSEC:
+\item trust anchors: updating (rfc5011), negative (rfc7646), signalling knowledge (rfc8145)
+
+- slight IPv6 preference
+
+- TTY config (runtime reconfig.)
+
+Filtering:
+- policy mod.
+- views mod.
+
+https://www.ctrl.blog/entry/kresd-random-dns-forwarding
+https://forum.turris.cz/t/knot-resolver-and-rpz/2023
 
 
 \lastSlide[https://knot-resolver.cz]{Thanks! Questions?}

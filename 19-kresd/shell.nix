@@ -6,12 +6,14 @@ stdenv.mkDerivation {
   buildInputs = [
     (texlive.combine {
       inherit (texlive) scheme-small collection-xetex
-        fontspec euenc metapost metafont;
+        fontspec euenc metapost metafont
+        pdfcrop
+        ;
     })
     gnumake
   ];
 
-  FONTCONFIG_FILE = makeFontsConf { fontDirectories = [ lmodern corefonts ]; };
+  #FONTCONFIG_FILE = makeFontsConf { fontDirectories = [ lmodern corefonts ]; };
 
   shellHook = ''
     while true; do
