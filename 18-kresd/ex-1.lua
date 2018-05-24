@@ -29,9 +29,3 @@ modules = {
 	}
 }
 
--- Block all `site.nl` for `10.0.0.0/24` subnet
-view:addr('10.0.0.0/24', policy.suffix(policy.DROP, {todname('site.nl')}))
--- Force all clients from `192.168.2.0/24` to TCP
-view:addr('192.168.2.0/24', policy.all(policy.TC))
--- Apply RPZ for all clients, default rule is DENY
-policy.add(policy.rpz(policy.DENY, 'blacklist.rpz'))

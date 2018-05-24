@@ -16,12 +16,30 @@
   % TODO: at beginning or the end?
 Czech ccTLD registry,
 but many other projects, e.g.:
+  % First a few words about my association;
+  % cz.nic is primarily our top-level domain registry,
+  % but we do lots of other projects - usually it SW
+  % and almost always open-source related to the foundations
+  % of the internet.
 \bulletList
 \item FRED: registry SW, used by several ccTLDs
+  % We develop the registry SW we use for .cz,
+  % and it's _also_ used by several other TLDs.
+  % Well, that probably won't be interesting for you,
+  % so let me move on.
 \item Turris: self-updating secure hackable routers
+  % Turris is a family of routers - the main idea here is that
+  % all SW is buggy, so old firmware is unlikely to remain secure.
+  % Therefore, tey are self-updating (by default).
 \item BIRD: routing daemon
 \item CSIRT.CZ: national security response team
-\item HaaS: honeypot as a service
+\item HaaS: honeypot as a service (ssh, telnet)
+  % Everyone might run their own honeypot, but simulating ssh
+  % is potentially risky, so we offer proxying the connections
+  % to us for analysis.  A large diverse set of honeypot IPs
+  % is more difficult to avoid.
+  % HaaS is connected to Turris - the IPs that are detected
+  % as malicious (or infected) get blocked in Turris firewalls.
 \item Knot DNS: authoritative-only server
   % Finally our older sister project Knot-DNS,
   % a very fast authoritative server.
@@ -33,24 +51,19 @@ Knot resolver is caching validating DNS resolver.
 
 \bulletList
 \item introduction and architecture
-
+  % I'll start with some general and superficial information
+  % about the project.
 \item overview of features
-
+  % then some overview of what it can do for you;
 \item configuration, filtering DNS
-
+  % and finally we'll dive deeper into configuration,
+  % in particular into possibilities around DNS filtering.
 \endBulletList
 
 
-\slide[Knot resolver core values]
+\slide[Knot resolver -- in a few lines]
 %TODO title?? + express it's about kresd (and not e.g. cz.nic)
 \bulletList
-
-\item minimalistic approach -- libraries
-  % We try to defer code to libraries where possible.
-  % It's not _just_ about being lazy.
-
-\item simplicity by default
-  % You can just start it without any configuration or parameters.
 
 \item DNSSEC and privacy
   % cz.nic believes in DNSSEC, so we try to make it just work
@@ -60,10 +73,18 @@ Knot resolver is caching validating DNS resolver.
   % Flexibility -- not by providing a thousand configuration options,
   % but rather providing places where you can plug-in lua scripts
   % -- our modules or your own code.
+
+\item minimalistic approach -- libraries
+  % We try to defer code to libraries where possible.
+  % It's not _just_ about being lazy.
+
+\item simplicity by default
+  % You can just start it without any configuration or parameters.
 \endBulletList
 
 
 \slide[Architecture]
+Written in C and Lua. \par
 No threads, just processes sharing cache.
 
 \bulletList
@@ -78,6 +99,7 @@ No threads, just processes sharing cache.
 \slide[Features: DNSSEC algorithms]
 \image[800]{rootcanary.png}
 %\URL{https://rootcanary.org/test.html}
+  % Just as other popular resolvers, we support 
   % On the left there are three algorithms that are now considered insecure.
   % We're basically only limited by GnuTLS:
   %  - GOST has a merge request waiting,
@@ -138,10 +160,72 @@ Provided by modules and off by default:
 \slide[Configuration]
 \bulletList
 \item flexibility: it's just lua (LuaJIT)
-\item Knot resolver -specific syntax sugar and bindings
-\item control via a unix socket -- lua read-eval-print loop
+  % Having a full programming language as the configuration language
+  % has advantages: you don't need to generate configuration files
+  % - you may just put the code _inside_ them.
+\item Knot resolver -specific utility functions and bindings
+\item control via a lua read-eval-print loop (unix socket)
 \item {\tti example 1}
 \endBulletList
+
+
+
+\slide[Policy module: basics]
+\bulletList
+\item incoming request is matched against a list of \cznicred filter\endCol{} rules
+\item the first matching rule selects an \cznicred action\endCol
+\endBulletList
+
+{\bf Available filters:}
+\bulletList
+\item {\tt all(action)}, {\tt pattern(action, regexp)}, {\tt suffix(action, table)}
+\item {\tt rpz(default\_action, path)} -- a subset of the RPZ (more later)
+\item custom rule in lua (worse docs, but code is short)
+\endBulletList
+
+\slide[Policy module: actions]
+\bulletList
+\item {\tt DENY}, {\tt DENY\_MSG(message)} -- NXDOMAIN, message in ADDITIONAL TXT
+\item {\tt DROP} -- answer SERVFAIL
+\item {\tt PASS} -- useful as an exception from further rules
+\item {\tt FORWARD(ip)}, {\tt TLS\_FORWARD(ip, auth. params)} -- solve via forwarding
+\item {\tt MIRROR(ip)}, {\tt REROUTE({{subnet,target}, ...})}
+\item ...
+\item {\tti example 2:} filters with actions
+\endBulletList
+
+\slide[Policy module: RPZ subset]
+\bulletList
+\item config: {\tt policy.rpz(action, path)} \par
+\item RPZ lines: {\tt *.matched.subtree.com CNAME right.hand.rule.}
+\endBulletList
+Supported right-hand side rules:
+\bulletList
+\item * and .* -- the {\tt action} is used (i.e. partial support)
+\item {\tt rpz-passthru.} -- as {\tt policy.PASS}
+\item {\tt rpz-drop.} -- as {\tt policy.DROP}
+\item {\tt rpz-tcp-only.} -- as {\tt policy.TC}
+\endBulletList
+
+
+\slide[View module]
+Another layer around policy-filter rules,
+based on \cznicred who \endCol asks:
+\bulletList
+\item {\tt addr(subnet, policy)} -- matching by subnet
+\item {\tt tsig(key, policy)} -- matching by TSIG key
+\endBulletList
+\par
+Example:
+\verbatim
+modules = { 'view', 'policy' }
+view:addr('192.168.1.0/24', policy.rpz(policy.PASS, 'whitelist.rpz'))
+§
+
+
+
+\lastSlide[\cznicred https://knot-resolver.cz\endCol]{Thanks! Questions?}
+\bye
 
 
 \slide
@@ -152,14 +236,7 @@ DNSSEC:
 
 - TTY config (runtime reconfig.)
 
-Filtering:
-- policy mod.
-- views mod.
-
 https://www.ctrl.blog/entry/kresd-random-dns-forwarding
 https://forum.turris.cz/t/knot-resolver-and-rpz/2023
 
 
-\lastSlide[https://knot-resolver.cz]{Thanks! Questions?}
-
-\bye
