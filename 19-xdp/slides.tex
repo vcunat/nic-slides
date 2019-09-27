@@ -1,0 +1,73 @@
+% vim:set foldmethod=expr foldexpr=getline(v:lnum)=~'^\\\\slide.*'?'>1'\:'=' :
+% the modeline ^^ apparently doesn't work for some reason
+\input nicslix
+\czechenv
+
+\pageAspectRatio[16:9]
+
+\title{Rychlejší packety díky XDP}
+\subtitle{a předběžné zkušenosti v Knot Resolveru}
+\author{Vladimír Čunát}{vladimir.cunat@nic.cz}
+\date[2019-10-01]
+
+
+\slide[Přehled]
+
+\bulletList
+\item motivace: rychlost
+\item (e)BPF: úvod, příklad
+\item XDP a AF\_XDP
+\endBulletList
+
+
+\slide[Motivace]
+
+relativně drahé síťové syscally -- profil CPU času:
+\bulletList
+\item Knot DNS: 44\% sendmmsg, 14\% recvmmsg
+\item Knot Resolver: 33\% sendmmsg, 14\% recvmsg
+\item Unbound: 39\% sendto, 15\% recvfrom
+\endBulletList
+(UDP, odpovědi z cache, fyzická síť)
+
+
+\slide[(e)BPF]
+\twoColumn{0.66}{}
+(extended) Berkeley Packet Filter
+\bulletList
+\item původně: filtrování packetů
+\item kód od uživatele spuštěný už v kernel-módu
+\item instrukční sada pro velmi omezený virtuální stroj
+
+(C $\to$ clang)
+\item verifikace že kód nemůže udělat nic špatného
+\item dnes (Linux): více funkcí, využití i jinde (tracing)
+\endBulletList
+
+\rightColumn
+\bigskip
+\image[150]{pony_ebpf01.png}
+\endColumn
+
+
+\slide[XDP]
+
+eXpress Data Path (Linux 4.8)
+\bulletList
+\item eBPF před síťovým stackem
+\item může packet upravit
+\endBulletList
+
+nakonec rozhodnutí:
+\bulletList
+\item zahodit, zpracovat normálně
+\item odeslat ze stejného nebo jiného interface
+\item přesměrovat přímo do user-space AF\_XDP socketu (Linux 4.18)
+\endBulletList
+
+%% zde příklad: dns-reflector?  Ale vlastně v něm nic moc záživného není.
+
+
+
+\bye
+
