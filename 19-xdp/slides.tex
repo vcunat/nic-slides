@@ -6,68 +6,208 @@
 \pageAspectRatio[16:9]
 
 \title{Rychlejší packety díky XDP}
-\subtitle{a předběžné zkušenosti v Knot Resolveru}
-\author{Vladimír Čunát}{vladimir.cunat@nic.cz}
+\subtitle{a předběžné zkušenosti \hfill\pdfpic[400]{logo-kresd.pdf}}
+\author{Vláďa Čunát}{vladimir.cunat@nic.cz}
 \date[2019-10-01]
 
 
 \slide[Přehled]
 
+%FIXME
 \bulletList
-\item motivace: rychlost
-\item (e)BPF: úvod, příklad
-\item XDP a AF\_XDP
+\item Motivace: rychlost
+\item (e)BPF: úvod
+\item XDP: lepší (e)BPF filtrování
+\item AF\_XDP: socket, odesílání, příjem
+\item AF\_XDP: extras, nevýhody
+\item Naše plány
 \endBulletList
 
 
-\slide[Motivace]
+\slide[Motivace: rychlost]
 
+\twoColumn{0.66}{0.5}
 relativně drahé síťové syscally -- profil CPU času:
 \bulletList
-\item Knot DNS: 44\% sendmmsg, 14\% recvmmsg
 \item Knot Resolver: 33\% sendmmsg, 14\% recvmsg
+\item Knot DNS: 44\% sendmmsg, 14\% recvmmsg
 \item Unbound: 39\% sendto, 15\% recvfrom
 \endBulletList
 (UDP, odpovědi z cache, fyzická síť)
 
+\rightColumn
+\bigskip
+\hfill{}profil Knot DNS\par
+\hfill\pdfpic[150]{flame-graph.pdf}
+\endColumn
 
-\slide[(e)BPF]
-\twoColumn{0.66}{}
-(extended) Berkeley Packet Filter
+
+\slide[(e)BPF: extended Berkeley Packet Filter]
+
+\twoColumn{0.66}{0.5}
 \bulletList
-\item původně: filtrování packetů
+\item původně: filtrování packetů v BSD (1992 článek)
 \item kód od uživatele spuštěný už v kernel-módu
 \item instrukční sada pro velmi omezený virtuální stroj
-
-(C $\to$ clang)
+C $\to$ clang $\to$ bytecode $\to$ kernel
 \item verifikace že kód nemůže udělat nic špatného
 \item dnes (Linux): více funkcí, využití i jinde (tracing)
 \endBulletList
 
 \rightColumn
 \bigskip
-\image[150]{pony_ebpf01.png}
+\hfill\image[150]{pony_ebpf01.png}\par
+\hfill{}neoficiální logo eBPF
 \endColumn
 
 
-\slide[XDP]
+\slide[XDP: lepší (e)BPF filtrování]
 
-eXpress Data Path (Linux 4.8)
+\bulletList
+eXpress Data Path (Linux 4.8, rok 2016)
 \bulletList
 \item eBPF před síťovým stackem
-\item může packet upravit
+\item může packet upravit (ale zatím ne prodloužit)
 \endBulletList
 
-nakonec rozhodnutí:
+nakonec rozhodnutí, např.:
 \bulletList
 \item zahodit, zpracovat normálně
 \item odeslat ze stejného nebo jiného interface
-\item přesměrovat přímo do user-space AF\_XDP socketu (Linux 4.18)
+\item přesměrovat přímo do user-space AF\_XDP socketu (Linux 4.18, rok 2018)
+\endBulletList
+% TODO zde příklad: dns-reflector?  Ale vlastně v něm nic moc záživného není.
+
+
+\slide[AF\_XDP: socket]
+
+\twoColumn{0.75}{0.5}
+\bulletList
+\item obchází OS stack s vybranými ether.~framy
+\item navázán na jednu frontu jednoho net-interface
+\item RX i TX, důraz na minimalizaci overheadů
+\item využití sdílení paměti mezi kernel-space a user-space
+\item umem: předalokované pole bufferů stejné velikosti
+\item 4 kruhové fronty pro posílání deskriptorů ($\to$ umem)
+%\item následná komunikace (téměř) bez syscallů, ale
+\item lze použít obvyklé (e)poll/select
 \endBulletList
 
-%% zde příklad: dns-reflector?  Ale vlastně v něm nic moc záživného není.
+\rightColumn
+\smallskip
+\hfill Data $\ne$ Diesel\par
+\hfill\image[175]{other-xdp.jpg}\par
+\endColumn
 
 
+\slide[AF\_XDP: odesílání]
+
+\twoColumn{0.75}{0.53}
+\bulletList
+\item připravit frame do umem bufferu (někam)
+\item deskriptor $\to$ TX fronta (adresa a délka framu)
+\item probudit ovladač syscallem\par
+	($\le$ 2019, stačí jednou na dávku)
+\item ovladač předá buffer kartě
+\item deskriptor $\to$ "completion" fronta
+\endBulletList
+
+\rightColumn
+\bigskip\bigskip\bigskip\smallskip
+\hfill\image[600]{lwn-af_xdp.png}\par
+\endColumn
+
+
+\slide[AF\_XDP: příjem]
+
+\twoColumn{0.5}{0.53}
+\bulletList
+\item deskriptory $\to$ "fill" fronta
+\item packet který projde BPF je zapsán
+\item a jeho deskriptor $\to$ RX fronta
+\endBulletList
+detaily:
+\bulletList
+\item průběžně doplňovat "fill" frontu
+\item lze nastavit padding před framy
+	use case: přidání hlaviček in-place
+\endBulletList
+
+\rightColumn
+\bigskip\bigskip\bigskip\smallskip
+\hfill\image[600]{lwn-af_xdp.png}\par
+\endColumn
+
+
+\slide[AF\_XDP: extras]
+
+data se nezkopírují ani jednou, ideálně:
+\bulletList
+\item Intel (i40e, ixgbe): Linux 4.20 (Vánoce 2018)
+\item Mellanox (mlx5): Linux 5.3 (před dvěma týdny)
+\endBulletList
+
+vylepšení v budoucnu:
+\bulletList
+\item komunikace bez syscallů (i při odesílání)
+\item ještě větší flexibilita v (e)BPF programech
+\item snad efektivnější duplikace packetů
+\endBulletList
+
+
+\slide[AF\_XDP: nevýhody]
+
+\twoColumn{0.7}{0.5}
+cena TX klesne téměř na nulu, ale:
+\bulletList
+\item obejití OS stacku má nevýhody
+	\bulletList
+	\item bez čehokoliv v netfilteru
+	\item zatím: symetrické routování
+	\endBulletList
+\item složitější nastavování
+\item práva: skoro root (CAP\_SYS\_ADMIN, \dots)
+\item výrazné zrychlení jen na některých kartách
+\endBulletList
+
+\rightColumn
+\smallskip
+\pdfpic[300]{resolver-xdp.pdf}
+\par\hfill Knot Resolver: TX s XDP
+\endColumn
+
+
+\slide[Naše plány]
+
+\twoColumn{0.9}{}
+nevýhody $\to$ default bez XDP, ale speciální případy
+\bulletList
+\item triviální nástroje: dns-reflector (UDP)
+\item dokončení integrace do Knot Resolveru (UDP $\leftarrow$ klienti)
+\item integrace do Knot DNS (UDP)
+\item \URL{https://knot-dns.cz/benchmark/}
+\endBulletList
+\medskip
+\bulletList
+\item jiné nápady?
+\par statistky (dns-collector?), load-balancing, \dots
+\endBulletList
+
+\rightColumn
+\bigskip\bigskip
+\image[2000]{Comcast-Logo.png}
+\endColumn
+
+
+\slide[Užitečné odkazy]
+
+\bulletList
+\item \URL{https://lwn.net/Articles/750845/}
+\item \URL{https://www.kernel.org/doc/html/latest/networking/af\_xdp.html}
+\item \URL{https://archive.fosdem.org/2018/schedule/event/af\_xdp/}
+\item \URL{https://github.com/xdp-project/xdp-tutorial}
+\endBulletList
+(ty s podtržítkem nejsou klikatelné, bohužel)
 
 \bye
 
