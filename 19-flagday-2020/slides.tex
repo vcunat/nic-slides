@@ -1,0 +1,155 @@
+% vim:set foldmethod=expr foldexpr=getline(v:lnum)=~'^\\\\slide.*'?'>1'\:'=' :
+% the modeline ^^ apparently doesn't work for some reason
+\input nicslix
+\englishenv
+
+\pageAspectRatio[16:9]
+
+\title{DNS Flag Day 2020\hfill\pdfpic[300]{DNS_Flag.pdf}}
+\author{Vladimir Cunat}{vladimir.cunat@nic.cz}
+	% "Č" doesn't render in this font :-(
+\date[2019-11-26]
+
+\def\newLine{\hfill\break}
+\def\textSoft#1{\startCol{0.67 0.81 1   }#1\endCol}
+	%\cznicblue{\startCol{0    0.22 0.57}}
+
+
+\slide[Intro: Flag Day]
+% Just shortly.
+Coordinated action: open-source DNS vendors + operators
+% mainly because the first to move is disadvantaged
+{\newLine\it\textSoft{\hfill
+	> It's only broken with your resolver, so it's obviously your fault.}
+
+\URL{https://dnsflagday.net}
+
+{\bf 2019, February:}
+\bulletList
+\item no reaction to a query $\to$ do not retry without EDNS
+\item still allowed not to support EDNS: reply {\tt FORMERR}, RFC 6891
+\bigskip
+\item no real incident happened
+\endBulletList
+
+
+\slide[2020: IP fragmentation]
+"Smaller" than 2019 \par
+Aim: avoid fragmented UDP packets (with DNS) \par
+Why:
+\bulletList
+\item{\bf reachability}: large UDP often can't pass through \textSoft{\hfill(especially on IPv6)}
+\item{\bf security}: fragmentation simplifies off-path attacks on unsigned data
+\endBulletList
+% add an image?
+
+
+\slide[Plan]
+Plan: limit DNS payload over UDP by default, to 1232 bytes \newLine
+	\textSoft{\hfill(by both sides, can be overridden if you know better)}
+
+Unchanged protocol:
+\bulletList
+\item EDNS off $\to$ limit = 512
+\item EDNS on  $\to$ client chooses an upper bound \textSoft{(and server may also trim that)}
+\item current standard recommends 4096 limit as default
+\item answer does not fit $\to$ {\tt TC=1}, retry over TCP
+\endBulletList
+
+
+\slide[Potential issues]
+\bulletList
+\item server does not honor client's choice of upper bound
+% Now various variants of not noticing that TCP is *mandatory* part of DNS.
+\item server does not listen on TCP/53 \textSoft{(clarified in RFC 7766)}
+\item TCP/53 gets blocked (e.g. firewalls)
+\item client does not use TCP on an answer with TC=1
+\item \textSoft{TCP latency (edge cases)}
+\endBulletList
+
+\medskip\dots but
+\bulletList
+\item millions of users switched already \textSoft{(without issues)}
+\endBulletList
+
+
+\slide[ToDo]
+\bulletList
+\item no date yet, probably second half of 2020
+\item testing in advance: config is easy + web tool provided
+\item contribute: translations, "supporters" list, \dots
+\item zone reccomendation: avoid needing large replies \textSoft{(e.g. ECDSA helps)}
+\endBulletList
+
+\vfill
+\cznicred
+Questions?  Feedback?
+\cznicblue
+
+
+
+\slide[Links]
+\URL{https://dnsflagday.net/2020/}
+
+\def\softURL#1{\petit\newLine{\URL[x]{#1}}\normalSize}
+\bulletList
+\item IP Fragmentation Considered Fragile \textSoft{(BCP track, now in RFC Ed Queue)}
+	\softURL{https://tools.ietf.org/html/draft-ietf-intarea-frag-fragile}
+\item IPv6, Large UDP Packets and the DNS \textSoft{(article by Geoff Huston)}
+	\softURL{http://www.potaroo.net/ispcol/2017-08/xtn-hdrs.html}
+\item Measures against cache poisoning attacks using IP fragmentation in DNS
+	\softURL{https://tools.ietf.org/html/draft-fujiwara-dnsop-fragment-attack}
+	\hfill\hbox{\textSoft{(I-D, expired)}}
+\endBulletList
+
+
+\slide[Configuration]
+
+\twoColumn{0.5}{0.5}
+BIND
+\petit \verbatim
+options {
+  edns-udp-size 1232;
+  max-udp-size 1232;
+};
+§ \normalSize \smallskip
+
+NSD
+\petit \verbatim
+server:
+  ipv4-edns-size: 1232
+  ipv6-edns-size: 1232
+§ \normalSize \smallskip
+
+Unbound
+\petit \verbatim
+server:
+  edns-buffer-size: 1232
+§ \normalSize \smallskip
+
+\rightColumn
+Knot DNS
+\petit \verbatim
+server:
+  max-udp-payload: 1232
+§ \normalSize \smallskip
+
+Knot Resolver
+\petit \verbatim
+net.bufsize(1232)
+§ \normalSize \smallskip
+
+PowerDNS Authoritative
+\petit\verbatim
+udp-truncation-threshold=1232
+§ \normalSize \smallskip
+
+PowerDNS Recursor
+\petit\verbatim
+edns-outgoing-bufsize=1232
+udp-truncation-threshold=1232
+§ \normalSize \smallskip
+
+\endColumn
+
+\bye
