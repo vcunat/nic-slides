@@ -1,1 +1,5 @@
 16-libuv/
+*.log
+pruhy.[12]
+*.swp
+slides.pdf
