@@ -6,8 +6,8 @@
 \pageAspectRatio[16:9]
 
 \title{DNS Flag Day 2020\hfill\pdfpic[300]{DNS_Flag.pdf}}
-\author{Vladimir Cunat}{vladimir.cunat@nic.cz}
-	% "Č" doesn't render in this font :-(
+\author{Vladimír Čunát}{vladimir.cunat@nic.cz}
+	% "Č" doesn't render in some (free) Avenir fonts :-(
 \date[2019-11-26]
 
 \def\newLine{\hfill\break}
@@ -15,30 +15,34 @@
 	%\cznicblue{\startCol{0    0.22 0.57}}
 
 
-\slide[Intro: Flag Day]
+\slide[Intro: Flag Day\hfill\URL{https://dnsflagday.net}]
 % Just shortly.
 Coordinated action: open-source DNS vendors + operators
-% mainly because the first to move is disadvantaged
-{\newLine\it\textSoft{\hfill
-	> It's only broken with your resolver, so it's obviously your fault.}
+\smallskip
+Aim: move burden of breaking the standards
+% coordinated mainly because the first to move is disadvantaged
+{\newLine\textSoft{\hfill
+	> It's only broken with {\it your} resolver, so it's obviously your fault.}
+\smallskip
 
-\URL{https://dnsflagday.net}
-
-{\bf 2019, February:}
+{\bf 2019, February:\hfill\rm\textSoft{(the first DNS Flag Day)}}
 \bulletList
 \item no reaction to a query $\to$ do not retry without EDNS
 \item still allowed not to support EDNS: reply {\tt FORMERR}, RFC 6891
-\bigskip
-\item no real incident happened
+\medskip
+\item success: no real incident happened
 \endBulletList
 
 
 \slide[2020: IP fragmentation]
-"Smaller" than 2019 \par
-Aim: avoid fragmented UDP packets (with DNS) \par
-Why:
+"Smaller" than 2019
+\medskip
+Aim: avoid fragmented UDP packets (with DNS)
+\medskip
+{\bf Why:}
 \bulletList
-\item{\bf reachability}: large UDP often can't pass through \textSoft{\hfill(especially on IPv6)}
+\item{\bf reachability}: large UDP often can't pass through
+	\newLine\textSoft{\hfill(mainly because of firewalls and NATs; especially on IPv6)}
 \item{\bf security}: fragmentation simplifies off-path attacks on unsigned data
 \endBulletList
 % add an image?
