@@ -1,0 +1,89 @@
+## Anotace
+
+Projekt Knot Resolver se stále intenzivně vyvíjí.  Seznámíme vás s nejvýraznějšími změnami, ke kterým došlo za uplynulý rok.  Například došlo k přepracování logování a způsobu výběru autoritativních serverů.
+
+čas: 20 minut + 5 minut dotazy
+- 5m: asserty + logování
+- 5m: shotgun + DoH
+- 5m: výběr NS
+
+
+
+
+
+## Přehled
+? věta o tom co je Knot Resolver - ale pro ty co neví asi nebude v celé přednášce nic pochopitelného, takže nejspíš jen velmi krátce
+
+novinky za poslední rok,
+tedy v5.2.0..v5.4.2 (IT 20)
+
+
+## Logování
+Meta-data:
+- dříve pouze čistý text do stdout/stderr
+- úroveň (crit, err, warning, notice, info, debug)
+  například `journalctl -p err`
+- v případě systemd i přesná pozice ve zdrojových souborech
+
+Skupiny: standardizace
+- každá log zpráva má (interně) skupinu,
+  například `[cache ]` nebo každý "modul" má svou
+- lze zapínat `debug` úroveň logování pro každou skupinu zvlášť
+
+? zmínit: minule byly prezentovány možnosti omezení pro které *dotazy* je `debug` úroveň
+?   posílat `debug` do log-daemona obecně není použitelné
+
+https://knot-resolver.readthedocs.io/en/stable/config-logging-monitoring.html
+
+
+## Výběr name-serverů
+O co jde:
+ - více možností při dotazování autoritativních serverů
+ - které IP adresy se dotázat
+ - nebo zjišťovat další IP adresy?
+
+Proč:
+ - nevhodné chování v některých krajních situacích
+ - magický kód - obtížné porozumění, změny, ...
+
+=> Přepsání.
+Praktické důsledky (v okrajových situacích):
+ - lepší latence kresd při cache miss
+ - méně plýtvání packety
+
+- ? obrázky snad už každou chvíli, pak vhodně zakomponovat s textem výše
+https://indico.dns-oarc.net/event/32/contributions/711/
+
+
+## Asserty / stabilita (?? lepší název)
+- mnoho testování, ale nejde být 100% bez chyb:
+  složitost, asynchronicita, volnost v konfiguraci
+- dilema: co s nečekaným stavem?  (dobře zotavitelným)
+  * spadnout? díky coredumpu větší šance odhalit zdroj chyby
+  * zotavit? například pouze SERVFAIL jediného dotazu
+  * oboje! fork, dítě spadne, rodič se zotaví
+
+
+## Různé
+
+- stabilizace DoH(2)
+  * před rokem: nová implementace DNS-over-HTTPS
+  * letos: doladění detailů dle produkčního provozu na ODVR (složitost protokolu, "divní" klienti)
+  - migrujte ze staré implementace - ta byla vhodná pouze na experimentální provoz
+- ? dnstap: různá vylepšení
+- ? NSEC3 iterace
+- ? dns64: drobná vylepšení
+- ? balíčkování
+    * Debian 11->stable, tedy ne až tak starý kresd (5.3.1)
+	  ale stejně preferujte balíky od cz.nic (aktuální)
+
+## Shotgun
+už rovnou ve slidech
+
+
+## Budoucnost
+?? krátce něco zmínit, možná dle celkového množství obsahu/času
+- ZONEMD?  Z hlediska uživatelů asi dost nepodstatná drobnost, leda udělat reklamu na prefill pro root, ale ten už rozumně funguje roky.
+- deklarativní konfigurace
+  ? zmínit plány které už vypadají jasně: YAML soubor, důkladná kontrola (typové schéma), REST API
+
