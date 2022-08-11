@@ -87,3 +87,16 @@ už rovnou ve slidech
 - deklarativní konfigurace
   ? zmínit plány které už vypadají jasně: YAML soubor, důkladná kontrola (typové schéma), REST API
 
+## OARC ubrat:
+- shotgun: they've seen it already, I think
+
+## OARC navíc -> 5.5.1
+- extended EDNS errors [RFC8914]
+- ZONEMD, but not by default (waiting for root)
+- PROXYv2 support
+
+## OARC navíc: 5.2.0? (2020/11)
+Perhaps too old and/or less interesting for OARC?
+- native C implementation of DoH/2 [5.2.0]
+- AF_XDP (only server side for plain DNS-over-UDP)
+- EDNS buffer size defaults -> 1232
